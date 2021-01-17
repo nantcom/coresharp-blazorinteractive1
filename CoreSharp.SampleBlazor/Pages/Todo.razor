@@ -1,0 +1,111 @@
+﻿@page "/todo"
+
+<h1>Todo Items</h1>
+
+@if (this.IsNameSet)
+{
+    <div class="alert alert-info">
+        Hello @this.Name
+    </div>
+
+    <div class="input-group mb-3">
+        <div class="input-group-prepend">
+            <div class="input-group-text">
+                <input type="checkbox" disabled>
+            </div>
+        </div>
+        <input type="text" class="form-control" placeholder="Title" @bind-value="NewItem.Title">
+        <div class="input-group-append">
+            <button class="btn btn-primary" type="button" @onclick="SendNewItem">Send</button>
+        </div>
+    </div>
+    <ul class="list-group">
+        @foreach (var item in Data.Todo.Items.OrderBy(t => t.Title))
+        {
+            <li class="list-group-item">
+
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox"
+                           @onchange="(e)=> { item.IsDone = (bool)e.Value; this.OnStateChanged(); }"
+                           @attributes="GetChecked(item)">
+                    <label class="form-check-label">
+                        @item.Title
+                        <br />
+                        <span class="text-muted">by: @item.Owner</span>
+                    </label>
+                </div>
+
+            </li>
+        }
+
+    </ul>
+}
+else
+{
+    <form>
+        <div class="alert alert-warning" role="alert">
+            Please Enter Your Name
+        </div>
+
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Your Name" @bind-value="Name">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" @onclick="SetName">Sign-In</button>
+            </div>
+        </div>
+    </form>
+}
+
+
+@code {
+
+    private static event Action StateChanged = delegate { };
+
+    private void OnStateChanged()
+    {
+        Todo.StateChanged();
+    }
+
+    private IEnumerable<KeyValuePair<string, object>> GetChecked(Data.Todo item)
+    {
+        if (item.IsDone)
+        {
+            yield return new KeyValuePair<string, object>("checked", "checked");
+        }
+
+        yield break;
+    }
+
+    protected override void OnInitialized()
+    {
+        Todo.StateChanged += () =>
+        {
+            this.InvokeAsync(this.StateHasChanged);
+        };
+    }
+
+    public bool IsNameSet { get; set; }
+
+    public string Name { get; set; }
+
+    public void SetName()
+    {
+        if (string.IsNullOrEmpty(Name) == false)
+        {
+            this.IsNameSet = true;
+        }
+    }
+
+    public Data.Todo NewItem { get; set; } = new();
+
+    public void SendNewItem()
+    {
+        var item = this.NewItem;
+        this.NewItem = new();
+
+        item.Owner = this.Name;
+        Data.Todo.Items.Add(item);
+        Todo.StateChanged();
+    }
+
+}
